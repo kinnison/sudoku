@@ -34,6 +34,15 @@ pub trait Technique {
         }
     }
 }
+
+/// The Naked Single technique.
+///
+/// A 'naked single' is a cell which has not yet been fixed and
+/// yet only has a single pencil mark and so is not possible to
+/// be anything but the pencil mark present.
+///
+/// To act on a naked single we simply replace the possibility with
+/// the fixed cell.
 pub struct NakedSingle;
 
 impl Technique for NakedSingle {
@@ -63,6 +72,15 @@ impl Technique for NakedSingle {
     }
 }
 
+/// The hidden single technique
+///
+/// A hidden single is where a house (row, column, box) contains a cell
+/// which on the face of it has more than one possibility, however on
+/// closer inspection is the only cell in that house which can be one of
+/// the values it could take.  For example, the cell might have 1,2,3 as
+/// possibilities but if no other cell in the house could have the value 2
+/// then this is a hidden single.  To act on a hidden single we simply
+/// replace all possibilities in the cell with the fixed hidden single.
 pub struct HiddenSingle;
 
 impl Technique for HiddenSingle {
