@@ -117,6 +117,47 @@ impl Technique for HiddenSingle {
     }
 }
 
+/// The naked pair technique
+///
+/// A naked pair is where two unfixed cells in a house have the
+/// same two possibilities.  Where you have a naked pair you can
+/// then eliminate those two possibilities from any other cell in
+/// that house.
+pub struct NakedPair;
+
+impl Technique for NakedPair {
+    fn name(&self) -> &'static str {
+        "naked pair"
+    }
+
+    fn step(&mut self, grid: &mut SGrid) -> SolveStepResult {
+        for house in 0..27 {
+            let cells = grid.house(house);
+            for a in 0..8 {
+                if cells[a].possibilities() != 2 {
+                    continue;
+                }
+                for b in (a + 1)..9 {
+                    if cells[a] == cells[b] {
+                        // This is a naked pair, but can we do anything?
+                        let mut changed = false;
+                        for other in 0..9 {
+                            if other == a || other == b {
+                                continue;
+                            }
+                            changed |= grid.house_cell_mut(house, other).remove_all(cells[a]);
+                        }
+                        if changed {
+                            return Acted;
+                        }
+                    }
+                }
+            }
+        }
+        Stuck
+    }
+}
+
 pub struct SolverSet {
     techniques: Vec<Box<dyn Technique>>,
 }

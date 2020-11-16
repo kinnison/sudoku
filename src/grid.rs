@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use log::debug;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SCell {
     Fixed(u8),
     Possible(u16),
@@ -41,10 +41,38 @@ impl SCell {
         }
     }
 
+    // Returns true if something changed
+    pub fn remove_all(&mut self, other: SCell) -> bool {
+        let val = match other {
+            SCell::Fixed(v) => 1 << v,
+            SCell::Possible(v) => v,
+        };
+        match self {
+            SCell::Fixed(_) => false,
+            SCell::Possible(f) => {
+                let newf = *f & !val;
+                if *f != newf {
+                    *f = newf;
+                    true
+                } else {
+                    // Nothing removed
+                    false
+                }
+            }
+        }
+    }
+
     pub fn values(&self) -> CellValues {
         match *self {
             SCell::Fixed(n) => CellValues::new(1 << n),
             SCell::Possible(v) => CellValues::new(v),
+        }
+    }
+
+    pub fn possibilities(&self) -> usize {
+        match *self {
+            SCell::Fixed(_) => 0,
+            SCell::Possible(v) => v.count_ones() as usize,
         }
     }
 }
@@ -214,13 +242,28 @@ impl SGrid {
         }
     }
 
-    pub fn set_house(&mut self, house: usize, cell: usize, val: u8) -> SResult {
-        let (row, col) = match house {
+    pub fn house_cell_to_row_col(house: usize, cell: usize) -> (usize, usize) {
+        match house {
             0..=8 => (house, cell),
             9..=17 => (cell, house - 8),
             18..=26 => super::BOXES[house - 18][cell],
             _ => unreachable!(),
-        };
+        }
+    }
+
+    pub fn set_house(&mut self, house: usize, cell: usize, val: u8) -> SResult {
+        let (row, col) = Self::house_cell_to_row_col(house, cell);
         self.set_cell(row, col, val)
+    }
+
+    #[allow(dead_code)]
+    pub fn house_cell(&self, house: usize, cell: usize) -> SCell {
+        let (row, col) = Self::house_cell_to_row_col(house, cell);
+        self.cell(row, col)
+    }
+
+    pub fn house_cell_mut(&mut self, house: usize, cell: usize) -> &mut SCell {
+        let (row, col) = Self::house_cell_to_row_col(house, cell);
+        self.cell_mut(row, col)
     }
 }
