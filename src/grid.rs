@@ -1,6 +1,10 @@
 use super::rules::Ruleset;
 use super::types::SResult;
 
+use std::rc::Rc;
+
+use log::debug;
+
 #[derive(Debug, Copy, Clone)]
 pub enum SCell {
     Fixed(u8),
@@ -37,34 +41,53 @@ impl SCell {
         }
     }
 
-    pub fn naked_single(&self) -> Option<u8> {
-        match self {
-            SCell::Fixed(_) => None,
-            SCell::Possible(v) => match v {
-                0b000_000_001_0 => Some(1),
-                0b000_000_010_0 => Some(2),
-                0b000_000_100_0 => Some(3),
-                0b000_001_000_0 => Some(4),
-                0b000_010_000_0 => Some(5),
-                0b000_100_000_0 => Some(6),
-                0b001_000_000_0 => Some(7),
-                0b010_000_000_0 => Some(8),
-                0b100_000_000_0 => Some(9),
-                _ => None,
-            },
+    pub fn values(&self) -> CellValues {
+        match *self {
+            SCell::Fixed(n) => CellValues::new(1 << n),
+            SCell::Possible(v) => CellValues::new(v),
         }
     }
 }
 
-pub struct SGrid<'a, R> {
-    cells: [SCell; 81],
-    rules: &'a R,
+pub struct CellValues {
+    v: u16,
+    pos: u8,
 }
 
-impl<'a, R> std::fmt::Display for SGrid<'a, R>
-where
-    R: Ruleset,
-{
+impl CellValues {
+    fn new(v: u16) -> Self {
+        Self { v, pos: 0 }
+    }
+}
+
+impl Iterator for CellValues {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.pos > 9 {
+                break None;
+            }
+            self.pos += 1;
+            if (self.v & (1 << self.pos)) != 0 {
+                break Some(self.pos);
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let v = self.v & !((1 << self.pos) - 1);
+        (v.count_ones() as usize, Some(v.count_ones() as usize))
+    }
+}
+impl ExactSizeIterator for CellValues {}
+
+pub struct SGrid {
+    cells: [SCell; 81],
+    rules: Rc<dyn Ruleset>,
+}
+
+impl std::fmt::Display for SGrid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in 0..=8 {
             for col in 0..=8 {
@@ -85,23 +108,14 @@ where
     }
 }
 
-macro_rules! stry {
-    ($expr:expr) => {
-        match $expr {
-            $crate::SResult::Continue => (),
-            other => return other,
-        }
-    };
-}
-
-impl<'a, R> SGrid<'a, R>
-where
-    R: Ruleset,
-{
-    pub fn new(rules: &'a R) -> Self {
+impl SGrid {
+    pub fn new<R>(rules: R) -> Self
+    where
+        R: Ruleset + 'static,
+    {
         Self {
             cells: [SCell::default(); 81],
-            rules,
+            rules: Rc::new(rules),
         }
     }
 
@@ -128,7 +142,7 @@ where
     }
 
     pub fn set_cell(&mut self, row: usize, col: usize, val: u8) -> SResult {
-        println!("Attempting to set row {} col {} to {}", row, col, val);
+        debug!("Attempting to set row {} col {} to {}", row, col, val);
         match self.cell(row, col) {
             SCell::Fixed(v) => {
                 if v == val {
@@ -148,14 +162,13 @@ where
                      * cannot be anything, we're insoluable.
                      */
                     *self.cell_mut(row, col) = SCell::Fixed(val);
-                    for pos in self.rules.sees(row, col) {
+                    for pos in self.rules.clone().sees(row, col) {
                         match self.cell_mut(pos.0, pos.1) {
-                            SCell::Fixed(v) => println!(
-                                "Cell at row {} col {} already fixed as {}",
-                                pos.0, pos.1, v
-                            ),
+                            SCell::Fixed(v) => {
+                                debug!("Cell at row {} col {} already fixed as {}", pos.0, pos.1, v)
+                            }
                             p => {
-                                println!("Removing from cell at row {} col {}", pos.0, pos.1);
+                                debug!("Removing from cell at row {} col {}", pos.0, pos.1);
                                 if !p.remove(val) {
                                     return SResult::Insoluable(pos.0, pos.1);
                                 }
@@ -168,15 +181,46 @@ where
         }
     }
 
-    /// Make a single run through the naked singles
-    pub fn naked_singles(&mut self) -> SResult {
-        for row in 0..9 {
-            for col in 0..9 {
-                if let Some(val) = self.cell(row, col).naked_single() {
-                    stry!(self.set_cell(row, col, val));
-                }
-            }
+    pub fn row_house(&self, row: usize) -> [SCell; 9] {
+        let mut ret = [SCell::default(); 9];
+        for col in 0..9 {
+            ret[col] = self.cell(row, col);
         }
-        self.done()
+        ret
+    }
+
+    pub fn col_house(&self, col: usize) -> [SCell; 9] {
+        let mut ret = [SCell::default(); 9];
+        for row in 0..9 {
+            ret[row] = self.cell(row, col);
+        }
+        ret
+    }
+
+    pub fn box_house(&self, _box: usize) -> [SCell; 9] {
+        let mut ret = [SCell::default(); 9];
+        for (n, (row, col)) in super::BOXES[_box].iter().enumerate() {
+            ret[n] = self.cell(*row, *col);
+        }
+        ret
+    }
+
+    pub fn house(&self, house: usize) -> [SCell; 9] {
+        match house {
+            0..=8 => self.row_house(house),
+            9..=17 => self.col_house(house - 9),
+            18..=26 => self.box_house(house - 18),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn set_house(&mut self, house: usize, cell: usize, val: u8) -> SResult {
+        let (row, col) = match house {
+            0..=8 => (house, cell),
+            9..=17 => (cell, house - 8),
+            18..=26 => super::BOXES[house - 18][cell],
+            _ => unreachable!(),
+        };
+        self.set_cell(row, col, val)
     }
 }

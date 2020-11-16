@@ -2,7 +2,7 @@ pub trait Ruleset {
     fn sees(&self, row: usize, col: usize) -> &[(usize, usize)];
 }
 
-static BOXES: &[[(usize, usize); 9]] = &[
+pub static BOXES: &[[(usize, usize); 9]] = &[
     [
         (0, 0),
         (0, 1),

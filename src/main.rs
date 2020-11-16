@@ -1,15 +1,14 @@
 mod grid;
 mod rules;
+mod technique;
 mod types;
 
 use grid::*;
 use rules::*;
+use technique::*;
 use types::*;
 
-fn apply<'a, R>(grid: &mut SGrid<'a, R>, input: &str) -> SResult
-where
-    R: Ruleset,
-{
+fn apply(grid: &mut SGrid, input: &str) -> SResult {
     let mut ch = input.chars();
     for row in 0..9 {
         for col in 0..9 {
@@ -21,34 +20,36 @@ where
                     v => return v,
                 }
             }
-            println!("Grid now:\n{}", grid);
         }
     }
     SResult::Continue
 }
 
 fn main() {
+    pretty_env_logger::init_custom_env("SUDOKU_LOG");
+
     let rules = Normal::new();
-    let mut grid = SGrid::new(&rules);
+    let mut grid = SGrid::new(rules);
 
     if apply(
         &mut grid,
-        "   26 7 168  7  9 19   45  82 1   4   46 29   5   3 28  93   74 4  5  367 3 18   ",
+        //"   26 7 168  7  9 19   45  82 1   4   46 29   5   3 28  93   74 4  5  367 3 18   ",
+        //"9 3 4 6182 4 81 5  8 35   2  8  5  6         5  4  9  1   94 3  3 12 7 4749 3 2 1",
+        "1 7  8   3        2  3 5 1  1653   85 3   6 17   1935  4 2 6  5        7   8  1 6",
     ) != SResult::Continue
     {
         panic!("Failure applying input");
     }
 
     println!("Grid:\n{}", grid);
-    println!("Applying naked singles...");
-    loop {
-        match grid.naked_singles() {
-            SResult::Continue => {
-                println!("Round we go");
-            }
-            SResult::Finished => break,
-            other => panic!("Failure applying naked singles! {:?}", other),
-        }
+    let mut solver = SolverSet::new();
+    solver.add_technique(NakedSingle);
+    solver.add_technique(HiddenSingle);
+    match solver.solve_grid(&mut grid) {
+        SolveStepResult::Failed(e) => panic!("{:?}", e),
+        SolveStepResult::Stuck => panic!("Grid insoluable.  Final state:\n{}", grid),
+        SolveStepResult::Finished => {}
+        SolveStepResult::Acted => unreachable!(),
     }
     println!("Finished grid:\n{}", grid);
 }
