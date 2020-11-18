@@ -29,6 +29,7 @@ impl std::fmt::Debug for SCell {
 }
 
 impl Default for SCell {
+    #[allow(clippy::inconsistent_digit_grouping)]
     fn default() -> Self {
         SCell::Possible(0b111_111_111_0)
     }
@@ -234,17 +235,17 @@ impl SGrid {
 
     pub fn row_house(&self, row: usize) -> [SCell; 9] {
         let mut ret = [SCell::default(); 9];
-        for col in 0..9 {
-            ret[col] = self.cell(row, col);
-        }
+        ret.iter_mut()
+            .enumerate()
+            .for_each(|(col, cell)| *cell = self.cell(row, col));
         ret
     }
 
     pub fn col_house(&self, col: usize) -> [SCell; 9] {
         let mut ret = [SCell::default(); 9];
-        for row in 0..9 {
-            ret[row] = self.cell(row, col);
-        }
+        ret.iter_mut()
+            .enumerate()
+            .for_each(|(row, cell)| *cell = self.cell(row, col));
         ret
     }
 
