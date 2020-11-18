@@ -58,4 +58,5 @@ fn main() {
         SolveStepResult::Acted => unreachable!(),
     }
     println!("Finished grid:\n{}", grid);
+    solver.dump_actions();
 }

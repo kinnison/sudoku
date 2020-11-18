@@ -162,12 +162,16 @@ impl Technique for NakedPair {
 
 pub struct SolverSet {
     techniques: Vec<Box<dyn Technique>>,
+    actions: Vec<usize>,
+    defers: Vec<usize>,
 }
 
 impl SolverSet {
     pub fn new() -> SolverSet {
         Self {
             techniques: Vec::new(),
+            actions: Vec::new(),
+            defers: Vec::new(),
         }
     }
 
@@ -175,7 +179,9 @@ impl SolverSet {
     where
         T: Technique + 'static,
     {
-        self.techniques.push(Box::new(t))
+        self.techniques.push(Box::new(t));
+        self.actions.push(0);
+        self.defers.push(0);
     }
 
     pub fn solve_grid(&mut self, grid: &mut SGrid) -> SolveStepResult {
@@ -190,10 +196,12 @@ impl SolverSet {
             debug!("Applying {}", self.techniques[tnum].name());
             match self.techniques[tnum].step(grid) {
                 Stuck => {
+                    self.defers[tnum] += 1;
                     tnum += 1;
                     continue;
                 }
                 Acted => {
+                    self.actions[tnum] += 1;
                     tnum = 0;
                     continue;
                 }
@@ -201,6 +209,22 @@ impl SolverSet {
                     break res;
                 }
             }
+        }
+    }
+
+    pub fn dump_actions(&self) {
+        for ((technique, defer), action) in self
+            .techniques
+            .iter()
+            .zip(self.defers.iter())
+            .zip(self.actions.iter())
+        {
+            println!(
+                "{} deferred {} times and acted {} times",
+                technique.name(),
+                defer,
+                action
+            );
         }
     }
 }
