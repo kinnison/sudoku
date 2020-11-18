@@ -102,11 +102,13 @@ impl Technique for HiddenSingle {
                     }
                 };
             }
+            debug!("in house {} hidden single analysis: {:?}", house, found);
             for value in 1..=9 {
                 if let Some(s) = found.get_mut(&value) {
                     if s.len() == 1 {
                         let cell = s.iter().copied().next().unwrap();
-                        debug!("{:?}", content[cell]);
+                        debug!("Cell {} in house {} is {:?}", cell, house, content[cell]);
+                        debug!("Trying to isolate it down to {}", value);
                         grid.set_house(house, cell, value);
                         return Acted;
                     }
