@@ -187,7 +187,13 @@ impl SGrid {
     }
 
     pub fn set_cell(&mut self, row: usize, col: usize, val: u8) -> SResult {
-        debug!("Attempting to set row {} col {} to {}", row, col, val);
+        debug!(
+            "Attempting to set row {} col {} to {} (is currently {:?})",
+            row,
+            col,
+            val,
+            self.cell(row, col)
+        );
         match self.cell(row, col) {
             SCell::Fixed(v) => {
                 if v == val {
