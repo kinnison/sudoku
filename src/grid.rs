@@ -268,7 +268,7 @@ impl SGrid {
     pub fn house_cell_to_row_col(house: usize, cell: usize) -> (usize, usize) {
         match house {
             0..=8 => (house, cell),
-            9..=17 => (cell, house - 8),
+            9..=17 => (cell, house - 9),
             18..=26 => super::BOXES[house - 18][cell],
             _ => unreachable!(),
         }
