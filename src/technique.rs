@@ -97,7 +97,7 @@ impl Technique for HiddenSingle {
                     SCell::Fixed(_) => {}
                     SCell::Possible(_) => {
                         for value in cell.values() {
-                            found.entry(value).or_insert(HashSet::new()).insert(n);
+                            found.entry(value).or_insert_with(HashSet::new).insert(n);
                         }
                     }
                 };
