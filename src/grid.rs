@@ -5,10 +5,27 @@ use std::rc::Rc;
 
 use log::debug;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum SCell {
     Fixed(u8),
     Possible(u16),
+}
+
+impl std::fmt::Debug for SCell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SCell::Fixed(n) => write!(f, "Fixed({})", n),
+            SCell::Possible(v) => {
+                write!(f, "Possible(")?;
+                for i in 1..=9 {
+                    if (v & (1 << i)) != 0 {
+                        write!(f, "{}", i)?;
+                    }
+                }
+                write!(f, ")")
+            }
+        }
+    }
 }
 
 impl Default for SCell {
