@@ -3,6 +3,11 @@ mod rules;
 mod technique;
 mod types;
 
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+};
+
 use grid::*;
 use rules::*;
 use technique::*;
@@ -25,38 +30,55 @@ fn apply(grid: &mut SGrid, input: &str) -> SResult {
     SResult::Continue
 }
 
-fn main() {
-    pretty_env_logger::init_custom_env("SUDOKU_LOG");
-
-    let rules = Normal::new();
-    let mut grid = SGrid::new(rules);
-
-    if apply(
-        &mut grid,
-        // Naked Single only
-        //"   26 7 168  7  9 19   45  82 1   4   46 29   5   3 28  93   74 4  5  367 3 18   ",
-        //"9 3 4 6182 4 81 5  8 35   2  8  5  6         5  4  9  1   94 3  3 12 7 4749 3 2 1",
-        // Also needs HiddenSingle
-        //"1 7  8   3        2  3 5 1  1653   85 3   6 17   1935  4 2 6  5        7   8  1 6",
-        // Needs NakedPair
-        //"4  27 6  798156234 2 84   7237468951849531726561792843 82 15479 7  243    4 87  2",
-        " 9 3   14      23    52  6  5  678             394  5  8  79    71      56   3 8 ",
-    ) != SResult::Continue
-    {
-        panic!("Failure applying input");
-    }
-
+fn solve_grid(mut grid: SGrid) {
     println!("Grid:\n{}", grid);
-    let mut solver = SolverSet::new();
-    solver.add_technique(NakedSingle);
-    solver.add_technique(HiddenSingle);
-    solver.add_technique(NakedPair);
+    let mut solver = SolverSet::full();
     match solver.solve_grid(&mut grid) {
         SolveStepResult::Failed(e) => panic!("{:?}", e),
-        SolveStepResult::Stuck => panic!("Grid insoluable.  Final state:\n{}", grid),
+        SolveStepResult::Stuck => {
+            println!("Failed");
+            solver.dump_actions();
+            panic!("Grid insoluable.  Final state:\n{}", grid)
+        }
         SolveStepResult::Finished => {}
         SolveStepResult::Acted => unreachable!(),
     }
     println!("Finished grid:\n{}", grid);
     solver.dump_actions();
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    pretty_env_logger::init_custom_env("SUDOKU_LOG");
+
+    let input = File::open("grids.txt")?;
+    let input = BufReader::new(input);
+    let mut grids = Vec::new();
+    let mut gridlines = String::new();
+    for line in input.lines() {
+        let line = line?;
+        if line.starts_with('#') {
+            continue;
+        }
+        gridlines.extend(line.chars().filter(|&c| " 123456789".contains(c)));
+        match gridlines.len() {
+            n if n == 81 => {
+                let mut grid = SGrid::new(Normal::new());
+                if apply(&mut grid, &gridlines) != SResult::Continue {
+                    panic!("Could not build grid from input");
+                }
+                grids.push(grid);
+                gridlines = String::new();
+            }
+            n if n > 81 => {
+                panic!("Unable to load grids from input, got more than 81 chars in a grid?");
+            }
+            _ => {}
+        }
+    }
+
+    for grid in grids.into_iter() {
+        solve_grid(grid);
+    }
+
+    Ok(())
 }

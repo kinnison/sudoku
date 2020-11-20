@@ -227,4 +227,12 @@ impl SolverSet {
             );
         }
     }
+
+    pub fn full() -> SolverSet {
+        let mut ret = SolverSet::new();
+        ret.add_technique(NakedSingle);
+        ret.add_technique(HiddenSingle);
+        ret.add_technique(NakedPair);
+        ret
+    }
 }
