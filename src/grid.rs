@@ -16,13 +16,13 @@ impl std::fmt::Debug for SCell {
         match self {
             SCell::Fixed(n) => write!(f, "Fixed({})", n),
             SCell::Possible(v) => {
-                write!(f, "Possible(")?;
+                write!(f, "Possible[")?;
                 for i in 1..=9 {
                     if (v & (1 << i)) != 0 {
                         write!(f, "{}", i)?;
                     }
                 }
-                write!(f, ")")
+                write!(f, "]")
             }
         }
     }

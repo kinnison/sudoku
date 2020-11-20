@@ -76,7 +76,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    for grid in grids.into_iter() {
+    for (n, grid) in grids.into_iter().enumerate() {
+        println!("Grid {}...", n + 1);
         solve_grid(grid);
     }
 

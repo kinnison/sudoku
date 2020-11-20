@@ -102,7 +102,6 @@ impl Technique for HiddenSingle {
                     }
                 };
             }
-            debug!("in house {} hidden single analysis: {:?}", house, found);
             for value in 1..=9 {
                 if let Some(s) = found.get_mut(&value) {
                     if s.len() == 1 {
@@ -142,14 +141,24 @@ impl Technique for NakedPair {
                 for b in (a + 1)..9 {
                     if cells[a] == cells[b] {
                         // This is a naked pair, but can we do anything?
+                        debug!(
+                            "Found a naked pair of {:?} in house {} cells {} and {}",
+                            cells[a], house, a, b
+                        );
                         let mut changed = false;
                         for other in 0..9 {
                             if other == a || other == b {
                                 continue;
                             }
-                            changed |= grid.house_cell_mut(house, other).remove_all(cells[a]);
+                            let this_changed =
+                                grid.house_cell_mut(house, other).remove_all(cells[a]);
+                            if this_changed {
+                                debug!("We altered cell {} in the house", other);
+                            }
+                            changed |= this_changed;
                         }
                         if changed {
+                            debug!("We changed some cells as a result");
                             return Acted;
                         }
                     }
@@ -193,14 +202,16 @@ impl SolverSet {
             if tnum == self.techniques.len() {
                 break Stuck;
             }
-            debug!("Applying {}", self.techniques[tnum].name());
+            debug!("Trying {}", self.techniques[tnum].name());
             match self.techniques[tnum].step(grid) {
                 Stuck => {
+                    debug!("{} is stuck", self.techniques[tnum].name());
                     self.defers[tnum] += 1;
                     tnum += 1;
                     continue;
                 }
                 Acted => {
+                    debug!("{} acted", self.techniques[tnum].name());
                     self.actions[tnum] += 1;
                     tnum = 0;
                     continue;
