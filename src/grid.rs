@@ -177,6 +177,10 @@ impl SGrid {
         }
     }
 
+    pub fn rules(&self) -> Rc<dyn Ruleset> {
+        self.rules.clone()
+    }
+
     fn _pos(&self, row: usize, col: usize) -> usize {
         (row * 9) + col
     }
@@ -302,7 +306,6 @@ impl SGrid {
         }
     }
 
-    #[allow(dead_code)]
     pub fn house_cell(&self, house: usize, cell: usize) -> SCell {
         let (row, col) = Self::house_cell_to_row_col(house, cell);
         self.cell(row, col)

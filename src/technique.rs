@@ -229,6 +229,71 @@ impl Technique for HiddenPair {
     }
 }
 
+/// The pointing technique
+///
+/// When all the cells in a given house which could be a particular
+/// value are also in another house, any other cells in that other house
+/// which could be that value should have it removed from them.
+pub struct Pointing;
+
+impl Technique for Pointing {
+    fn name(&self) -> &'static str {
+        "pointing"
+    }
+
+    fn step(&mut self, grid: &mut SGrid) -> SolveStepResult {
+        for house in 0..27 {
+            for value in 1..=9 {
+                let mut found_in_house = HashSet::new();
+                for cell in 0..9 {
+                    if grid.house_cell(house, cell).values().any(|v| v == value) {
+                        let (row, col) = SGrid::house_cell_to_row_col(house, cell);
+                        found_in_house.insert((row, col));
+                    }
+                }
+                if found_in_house.len() < 2 {
+                    // No point looking at overlaps, there's fewer than 2 so not "pointing"
+                    continue;
+                }
+                for overlapping_house in grid.rules().overlapping_houses(house).iter().copied() {
+                    let mut found_in_overlap = HashSet::new();
+                    for cell in 0..9 {
+                        if grid
+                            .house_cell(overlapping_house, cell)
+                            .values()
+                            .any(|v| v == value)
+                        {
+                            let (row, col) = SGrid::house_cell_to_row_col(overlapping_house, cell);
+                            found_in_overlap.insert((row, col));
+                        }
+                    }
+                    if found_in_overlap.len() < 3 {
+                        // No point in looking at the overlapping cells, fewer than 3 means we're
+                        // not pointing at anything *else* in that other house
+                    }
+                    debug!(
+                        "Found {} in house {} points at house {}",
+                        value, house, overlapping_house
+                    );
+                    let mut changed = false;
+                    for (row, col) in found_in_overlap.into_iter() {
+                        if !found_in_house.contains(&(row, col)) {
+                            // This is a location in overlap which isn't in us,
+                            // So we get to remove value from it
+                            changed |= grid.cell_mut(row, col).remove(value);
+                        }
+                    }
+                    if changed {
+                        debug!("This did something");
+                        return Acted;
+                    }
+                }
+            }
+        }
+        Stuck
+    }
+}
+
 pub struct SolverSet {
     techniques: Vec<Box<dyn Technique>>,
     actions: Vec<usize>,
@@ -305,6 +370,7 @@ impl SolverSet {
         ret.add_technique(HiddenSingle);
         ret.add_technique(NakedPair);
         ret.add_technique(HiddenPair);
+        ret.add_technique(Pointing);
         ret
     }
 }

@@ -47,30 +47,30 @@
  71|   |   
 56 |  3| 8 
 #
-# Needs HiddenPair
-# 6 | 9 |   
-#  3|1  | 9 
-#19 | 26|3  
-#---+---+---
-#8  |5  |41 
-#   | 6 |   
-# 51|  3|  9
-#---+---+---
-#  9|63 | 27
-# 2 |  4|5  
-#   | 1 | 4 
-# Slightly harder, needs "pointing"
-#4  |27 |6  
-#798|156|234
-# 2 |84 |  7
-#---+---+---
-#237|468|951
-#849|531|726
-#561|792|843
-#---+---+---
-# 82| 15|479
-# 7 | 24|3  
-#  4| 87|  2
+# Slightly harder, needs "pointing" and "hidden pair"
+4  |27 |6  
+798|156|234
+ 2 |84 |  7
+---+---+---
+237|468|951
+849|531|726
+561|792|843
+---+---+---
+ 82| 15|479
+ 7 | 24|3  
+  4| 87|  2
+# A more full example needing both pointing and hidden pair
+ 6 | 9 |   
+  3|1  | 9 
+19 | 26|3  
+---+---+---
+8  |5  |41 
+   | 6 |   
+ 51|  3|  9
+---+---+---
+  9|63 | 27
+ 2 |  4|5  
+   | 1 | 4 
 #
 # You can use the following grid to build tests
 # For a test you need to replace all dots with either a given digit

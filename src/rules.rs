@@ -1,5 +1,29 @@
 pub trait Ruleset {
     fn sees(&self, row: usize, col: usize) -> &[(usize, usize)];
+
+    // Houses 0..9 are the rows
+    // Houses 9..18 are the columns
+    // Houses 18..27 are the boxes
+    fn overlapping_houses(&self, house: usize) -> &[usize] {
+        match house {
+            0 | 1 | 2 => &[18, 19, 20],    // Top three rows
+            3 | 4 | 5 => &[21, 22, 23],    // Next three
+            6 | 7 | 8 => &[24, 25, 26],    // Bottom three
+            9 | 10 | 11 => &[18, 21, 24],  // Left three boxes
+            12 | 13 | 14 => &[19, 22, 25], // Next three
+            15 | 16 | 17 => &[20, 23, 26], // Right three
+            18 => &[0, 1, 2, 9, 10, 11],   // Top left box
+            19 => &[0, 1, 2, 12, 13, 14],
+            20 => &[0, 1, 2, 15, 16, 17], // Top right box
+            21 => &[3, 4, 5, 9, 10, 11],
+            22 => &[3, 4, 5, 12, 13, 14],
+            23 => &[3, 4, 5, 15, 16, 17], // Middle right box
+            24 => &[6, 7, 8, 9, 10, 11],
+            25 => &[6, 7, 8, 12, 13, 14],
+            26 => &[6, 7, 8, 15, 16, 17], // Bottom right box
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub static BOXES: &[[(usize, usize); 9]] = &[
