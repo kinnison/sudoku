@@ -71,6 +71,18 @@
   9|63 | 27
  2 |  4|5  
    | 1 | 4 
+# Another 21-ish minute first solve, needs pointing but not hidden pair
+ 3 |  4|  6
+4 8|   |2  
+   |1  |  9
+---+---+---
+ 8 |37 | 2 
+   | 2 | 9 
+ 2 |84 | 5 
+---+---+---
+   |5  |  8
+5 1|   |7  
+ 9 |  6|  5
 #
 # You can use the following grid to build tests
 # For a test you need to replace all dots with either a given digit
