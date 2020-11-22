@@ -93,6 +93,18 @@ impl SCell {
             SCell::Possible(v) => v.count_ones() as usize,
         }
     }
+
+    pub fn intersect(&self, other: &SCell) -> SCell {
+        let my_poss = match *self {
+            SCell::Fixed(n) => 1 << n,
+            SCell::Possible(v) => v,
+        };
+        let other_poss = match other {
+            SCell::Fixed(n) => 1 << *n,
+            SCell::Possible(v) => *v,
+        };
+        SCell::Possible(my_poss & other_poss)
+    }
 }
 
 pub struct CellValues {
@@ -278,6 +290,16 @@ impl SGrid {
     pub fn set_house(&mut self, house: usize, cell: usize, val: u8) -> SResult {
         let (row, col) = Self::house_cell_to_row_col(house, cell);
         self.set_cell(row, col, val)
+    }
+
+    pub fn alter_house(&mut self, house: usize, cell: usize, val: SCell) -> bool {
+        let (row, col) = Self::house_cell_to_row_col(house, cell);
+        if self.cell(row, col) != val {
+            *self.cell_mut(row, col) = val;
+            true
+        } else {
+            false
+        }
     }
 
     #[allow(dead_code)]

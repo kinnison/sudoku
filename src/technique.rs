@@ -169,6 +169,66 @@ impl Technique for NakedPair {
     }
 }
 
+/// The hidden pair technique.
+///
+/// Hidden pair is a technique where you look in a house for two cells
+/// which, between them, are the only two cells which are possibly
+/// a given number.  Having found them, you can eliminate any other
+/// possiblities in those cells since those cells are limited to the
+/// given hidden pair.  This transforms the hidden pair into a naked
+/// pair, but that won't have any effect in *that* house (it may in
+/// an overlapping house).
+struct HiddenPair;
+
+impl Technique for HiddenPair {
+    fn name(&self) -> &'static str {
+        "HiddenPair"
+    }
+
+    fn step(&mut self, grid: &mut SGrid) -> SolveStepResult {
+        for house in 0..27 {
+            let content = grid.house(house);
+            let mut found = HashMap::new();
+            // First up, iterate the cells in the house and map from cell value
+            // to set of cells in the house which contain that value.
+            for (n, cell) in content.iter().enumerate() {
+                match cell {
+                    SCell::Fixed(_) => {}
+                    SCell::Possible(_) => {
+                        for value in cell.values() {
+                            found.entry(value).or_insert_with(HashSet::new).insert(n);
+                        }
+                    }
+                };
+            }
+            // Now we're looking for *pairs* of values present in the same two cells
+            for a in 0..8 {
+                if found.get(&a).map(HashSet::len).unwrap_or(0) == 2 {
+                    for b in a + 1..9 {
+                        if found.get(&a) == found.get(&b) {
+                            let mut hs = found.get(&a).unwrap().iter();
+                            let c1 = *hs.next().unwrap();
+                            let c2 = *hs.next().unwrap();
+                            debug!(
+                                "Found a {}/{} pair in cells {},{} of house {}",
+                                a, b, c1, c2, house
+                            );
+                            let ncell = content[c1].intersect(&content[c2]);
+                            let mut changed = grid.alter_house(house, c1, ncell);
+                            changed |= grid.alter_house(house, c2, ncell);
+                            if changed {
+                                debug!("This resulted in an action");
+                                return Acted;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Stuck
+    }
+}
+
 pub struct SolverSet {
     techniques: Vec<Box<dyn Technique>>,
     actions: Vec<usize>,
@@ -244,6 +304,7 @@ impl SolverSet {
         ret.add_technique(NakedSingle);
         ret.add_technique(HiddenSingle);
         ret.add_technique(NakedPair);
+        ret.add_technique(HiddenPair);
         ret
     }
 }
