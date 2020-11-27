@@ -18,7 +18,7 @@ fn apply(grid: &mut SGrid, input: &str) -> SResult {
     for row in 0..9 {
         for col in 0..9 {
             let ch = ch.next().unwrap() as u8;
-            if ch != b' ' {
+            if ch != b' ' && ch != b'.' {
                 let val = ch - b'0';
                 match grid.set_cell(row, col, val) {
                     SResult::Continue => {}
@@ -30,7 +30,7 @@ fn apply(grid: &mut SGrid, input: &str) -> SResult {
     SResult::Continue
 }
 
-fn solve_grid(mut grid: SGrid) {
+fn solve_grid(mut grid: SGrid) -> bool {
     println!("Grid:\n{}", grid);
     let mut solver = SolverSet::full();
     match solver.solve_grid(&mut grid) {
@@ -38,19 +38,24 @@ fn solve_grid(mut grid: SGrid) {
         SolveStepResult::Stuck => {
             println!("Failed");
             solver.dump_actions();
-            panic!("Grid insoluable.  Final state:\n{}", grid)
+            eprintln!("Grid insoluable.  Final state:\n{}", grid);
+            return false;
         }
         SolveStepResult::Finished => {}
         SolveStepResult::Acted => unreachable!(),
     }
     println!("Finished grid:\n{}", grid);
     solver.dump_actions();
+    true
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init_custom_env("SUDOKU_LOG");
 
-    let input = File::open("grids.txt")?;
+    let fname = std::env::args_os()
+        .nth(1)
+        .unwrap_or_else(|| "grids.txt".into());
+    let input = File::open(fname)?;
     let input = BufReader::new(input);
     let mut grids = Vec::new();
     let mut gridlines = String::new();
@@ -59,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if line.starts_with('#') {
             continue;
         }
-        gridlines.extend(line.chars().filter(|&c| " 123456789".contains(c)));
+        gridlines.extend(line.chars().filter(|&c| ". 123456789".contains(c)));
         match gridlines.len() {
             n if n == 81 => {
                 let mut grid = SGrid::new(Normal::new());
@@ -76,10 +81,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    let mut failcount = 0;
+    let gridcount = grids.len();
     for (n, grid) in grids.into_iter().enumerate() {
         println!("Grid {}...", n + 1);
-        solve_grid(grid);
+        if !solve_grid(grid) {
+            failcount += 1;
+        }
     }
-
+    println!("Failed to solve {} of {} grids", failcount, gridcount);
+    println!(
+        "That is a {}% success rate.",
+        ((gridcount - failcount) * 100) / gridcount
+    );
     Ok(())
 }
