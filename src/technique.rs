@@ -255,38 +255,50 @@ impl Technique for Pointing {
                     // No point looking at overlaps, there's fewer than 2 so not "pointing"
                     continue;
                 }
-                for overlapping_house in grid.rules().overlapping_houses(house).iter().copied() {
-                    let mut found_in_overlap = HashSet::new();
-                    for cell in 0..9 {
-                        if grid
-                            .house_cell(overlapping_house, cell)
-                            .values()
-                            .any(|v| v == value)
-                        {
-                            let (row, col) = SGrid::house_cell_to_row_col(overlapping_house, cell);
-                            found_in_overlap.insert((row, col));
-                        }
-                    }
-                    if found_in_overlap.len() < 3 {
-                        // No point in looking at the overlapping cells, fewer than 3 means we're
-                        // not pointing at anything *else* in that other house
-                    }
+
+                let mut sets = found_in_house.iter().copied().map(|(row, col)| {
                     debug!(
-                        "Found {} in house {} points at house {}",
-                        value, house, overlapping_house
+                        "Considering row {} col {} {:?}",
+                        row,
+                        col,
+                        grid.cell(row, col)
                     );
-                    let mut changed = false;
-                    for (row, col) in found_in_overlap.into_iter() {
-                        if !found_in_house.contains(&(row, col)) {
-                            // This is a location in overlap which isn't in us,
-                            // So we get to remove value from it
-                            changed |= grid.cell_mut(row, col).remove(value);
-                        }
+                    grid.rules()
+                        .sees(row, col)
+                        .iter()
+                        .copied()
+                        .collect::<HashSet<_>>()
+                });
+                let first_set = sets.next().unwrap();
+                println!("The first set is: {:?}", first_set);
+                let intersection = sets.fold(first_set, |s1, s2| {
+                    let isect = s1.intersection(&s2).copied().collect();
+                    debug!("Intersecting with {:?} produces {:?}", s2, isect);
+                    isect
+                });
+                // Every cell in intersection is seen by all cells pointing in the house
+                let mut acted = false;
+                debug!(
+                    "Found value {} in house {} in {} cells, pointing at {:?} cells",
+                    value,
+                    house,
+                    found_in_house.len(),
+                    intersection
+                );
+                for (row, col) in intersection {
+                    debug!("Considering row {} col {}", row, col);
+                    if found_in_house.contains(&(row, col)) {
+                        // Skip a cell in the pointer
+                        continue;
                     }
-                    if changed {
-                        debug!("This did something");
-                        return Acted;
-                    }
+                    debug!("It contains {:?}", grid.cell(row, col));
+                    acted |= grid.cell_mut(row, col).remove(value);
+                    debug!("It now contains {:?}", grid.cell(row, col));
+                    debug!("Acted = {}", acted);
+                }
+                if acted {
+                    debug!("This did something");
+                    return Acted;
                 }
             }
         }

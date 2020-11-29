@@ -48,8 +48,7 @@ impl SCell {
             SCell::Fixed(_) => false,
             SCell::Possible(f) => {
                 if (*f & (1 << val)) == 0 {
-                    // Already doesn't contain this, so it's fine to remove
-                    true
+                    false
                 } else {
                     let left = *f & !(1 << val);
                     *self = SCell::Possible(left);
@@ -237,7 +236,8 @@ impl SGrid {
                             }
                             p => {
                                 debug!("Removing from cell at row {} col {}", pos.0, pos.1);
-                                if !p.remove(val) {
+                                p.remove(val);
+                                if p.values().len() == 0 {
                                     return SResult::Insoluable(pos.0, pos.1);
                                 }
                             }
