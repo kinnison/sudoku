@@ -320,7 +320,7 @@ impl SolverSet {
 
     pub fn solve_grid(&mut self, grid: &mut SGrid) -> SolveStepResult {
         let mut tnum = 0;
-        loop {
+        'outer: loop {
             if let SResult::Finished = grid.done() {
                 break Finished;
             }
@@ -333,16 +333,22 @@ impl SolverSet {
                     debug!("{} is stuck", self.techniques[tnum].name());
                     self.defers[tnum] += 1;
                     tnum += 1;
-                    continue;
                 }
                 Acted => {
                     debug!("{} acted", self.techniques[tnum].name());
                     self.actions[tnum] += 1;
                     tnum = 0;
-                    continue;
                 }
                 res => {
                     break res;
+                }
+            }
+            for row in 0..9 {
+                for col in 0..9 {
+                    if grid.cell(row, col).values().len() == 0 {
+                        debug!("Well, that broke the grid!");
+                        break 'outer Stuck;
+                    }
                 }
             }
         }

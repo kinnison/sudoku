@@ -39,6 +39,14 @@ fn solve_grid(mut grid: SGrid) -> bool {
             println!("Failed");
             solver.dump_actions();
             eprintln!("Grid insoluable.  Final state:\n{}", grid);
+            for row in 0..9 {
+                for col in 0..9 {
+                    match grid.cell(row, col) {
+                        SCell::Fixed(_) => {}
+                        c => eprintln!("r{}c{} = {:?}", row, col, c),
+                    }
+                }
+            }
             return false;
         }
         SolveStepResult::Finished => {}
